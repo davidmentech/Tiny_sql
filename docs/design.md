@@ -1,0 +1,9 @@
+Design  
+The project includes 3 main components DB,schemas,and index.  
+DB is the component whom we interact with.   DB has map of schemas name (schema=table) to schema object as well counter of ops done, when the counter reaches certain number, we GC the entire DB  . moreover the DB keeps journal of done insert/delete ops so if the user closes the DB without exit, we can restore the db to semi valid state (the ops need to be written to the file before the closing).   the DB also keep file with schemas info for restoration.  
+schema is the table. it interacts with files and do all the logic of the commands and interacts with the index(B+ tree).  
+the index tree is B+ tree.  it keeps key in the interanl nodes and the leafs(all the keys need to be in the leafs for checking without needing of opening files),the data is saved in file.  the data we saved with the tree is position in file, the position points to another file where the real data is stored(other columns that arent keys).  the file used is append only (we dont overwrite,only appending to the file).  when deleting we just delete key from the tree with the matching position in the tree file (not the data file).  when inserting, we write the data to the data file and get back the position and insert to the index the key and the position.  we decided to use 2 files for better preformance when deleting (we read a lot less) and selecting (when using KEY we only do ops on keys with values from tree file and not the entire data)
+
+path ahad: can create function that only return keys when using range query  
+add more functonality
+add index tree for speedup of certain selects
