@@ -21,7 +21,8 @@ SELECT * FROM table_name
   prints all values from table  
 SELECT column_name_1 ... column_name_t from table  
   prints value from columns specified with same order spcified (meaning key can be printed at the end of the table)  
-can also add WHERE clause , supported ops: >= , <= , !=, ==. if the clause is on the key you better(for better preformence) use KEY>=val1,val2,...,valk  
+can also add WHERE clause , supported ops: >= , <= , !=, ==. if the clause is on the key you better(for better preformence) use KEY>=val1,val2,...,valk
+clause must be with no spaces and only with commas if the key is bigger then one column (can only have clause with one column if not using key)  
 there is also GC command when the system gets slow or the size of files is getting to big and EXIT when done (will save all the data from before)  
 the system can also restore the last state of the system (prompt will be shown at start)
 
