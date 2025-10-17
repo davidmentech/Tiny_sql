@@ -121,7 +121,9 @@ public:
     optional<S> search(const T& key);
     void remove(const T& key);
     T findSmallestInSubtree(Node *node);
+    vector<T> rangeQueryKeys(const T &lower, const T &upper);
     vector<pair<T, S>> rangeQuery(const T &lower, const T &upper);
+    vector<T> getAllKeys();
     vector<pair<T, S>> getAllValues();
     void printTree();
     T get_Max();
@@ -308,6 +310,46 @@ optional<S> BPlusTree<T, S>::search(const T& key) {
 
 // can be optimized to only check first and last key of each leaf node and if both in range, read whole leaf and line
 template <typename T, typename S>
+vector<T> BPlusTree<T, S>::rangeQueryKeys(const T& lower, const T& upper) {
+    vector<T> result;
+    if (root == nullptr) return result;
+
+    Node* current = root;
+    // Traverse to the first leaf node that might contain the lower bound
+    while (!current->isLeaf) {
+        auto it = upper_bound(current->keys.begin(), current->keys.end(), lower);
+        int i = distance(current->keys.begin(), it);
+        current = current->children[i];
+    }
+    // Scan through leaf nodes
+    while (current != nullptr) {
+        if(current->keys.empty() || current->keys.front() > upper) {
+            break; // No more keys in range
+        }
+        if(current->keys.back() <= upper &&current->keys.front()>=lower) {
+            for (int i = 0; i < current->keys.size(); i++) {
+                result.push_back(current->keys[i]);
+            }
+        }
+        else{
+                auto it = upper_bound(current->keys.begin(), current->keys.end(), lower);
+                auto dist = distance(current->keys.begin(), it);
+                auto a=dist-1;
+                if(dist>0&&current->keys[a]==lower){
+                    result.push_back(current->keys[a]);
+                }
+                for (int i = dist;  i < current->keys.size(); i++) {
+                    if(current->keys[i] > upper) break;
+                    result.push_back(current->keys[i]);
+                }
+        }
+        current = current->next;
+    }
+    return result;
+}
+
+
+template <typename T, typename S>
 vector<pair<T, S>> BPlusTree<T, S>::rangeQuery(const T& lower, const T& upper) {
     vector<pair<T, S>> result;
     if (root == nullptr) return result;
@@ -327,7 +369,7 @@ vector<pair<T, S>> BPlusTree<T, S>::rangeQuery(const T& lower, const T& upper) {
         vector<string> data = read_line_from_file(file_name, current->offset);
         if(current->keys.back() <= upper &&current->keys.front()>=lower) {
             for (int i = 0; i < data.size(); i++) {
-                result.push_back({current->keys[i], String_to_Type<S>((data[i]))});
+                result.push_back(make_pair(current->keys[i], String_to_Type<S>((data[i]))));
             }
         }
         else{
@@ -361,6 +403,22 @@ vector<pair<T, S>> BPlusTree<T, S>::getAllValues(){
             result.push_back(make_pair(current->keys[i], String_to_Type<S>((data[i]))));
         }
         
+        current = current->next;
+    }
+    return result;
+}
+
+template <typename T, typename S>
+vector<T> BPlusTree<T, S>::getAllKeys(){
+    vector<T> result;
+    if (root == nullptr) return result;
+    Node* current = root;
+    while (!current->isLeaf) {
+        current = current->children[0];
+    }
+    while (current != nullptr) {
+       
+        result.insert(result.end(),current->keys.begin(),current->keys.end()); 
         current = current->next;
     }
     return result;
@@ -717,6 +775,13 @@ void BPlusTree<T, S>::GC_with_values(vector<S> values) {
 //         cout << "(" << k << ", " << v << ") ";
 //     }
 //     cout << endl;
+
+//     vector<int> rangeResultb = tree.rangeQueryKeys(lower, upper);
+//     cout << "\nRange query [" << lower << ", " << upper << "]: ";
+//     for (const auto& k : rangeResultb) {
+//         cout << "(" << k  << ") ";
+//     }
+//     cout << endl;
     
 //     int removeKey = 5;
 //     tree.remove(removeKey);
@@ -733,6 +798,12 @@ void BPlusTree<T, S>::GC_with_values(vector<S> values) {
 //     for (const auto& [k, v] : allValues) {
 //         cout << "(" << k << ", " << v << ") ";
 //     }
+//     vector<int> allValuesa = tree.getAllKeys();
+//     cout << "\nAll keys in the B+ Tree: ";
+//     for (const auto& k : allValuesa) {
+//         cout << "(" << k << ") ";
+//     }
+
 //     cout << endl;
 //     tree.GC_with_values(vector<int>{10, 14, 16, 24, 34, 40, 60});
 //     cout << "\nTree after GC : ";

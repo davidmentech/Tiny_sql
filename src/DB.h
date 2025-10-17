@@ -135,7 +135,7 @@ public:
         vector<vector<string>> filtered_values;
         vector<string> commands;
         bool look_up_index=false;
-        vector<pair<vector<string>,streampos>> vals_from_index;
+        vector<vector<string>> vals_from_index;
         string op="";
         string column;
         string val;
@@ -167,22 +167,22 @@ public:
                 }
                 if(!look_up_index){
                     if(op==">="){
-                        vals_from_index=index_tree->rangeQuery(key,index_tree->get_Max());
+                        vals_from_index=index_tree->rangeQueryKeys(key,index_tree->get_Max());
                     }
                     else if(op=="<="){
-                        vals_from_index=index_tree->rangeQuery(index_tree->get_Min(),key);
+                        vals_from_index=index_tree->rangeQueryKeys(index_tree->get_Min(),key);
                     }
                     else if(op=="=="){
                         optional<streampos> val_from_indx=index_tree->search(key);
                         if(!val_from_indx.has_value()) return filtered_values;
                         else{
-                            return get_all_data({std::make_pair(key, val_from_indx.value())});
+                            vals_from_index= {key};
                         }
                     }
                     else if(op=="!="){
-                       vector<pair<vector<string>,streampos>> dummy =index_tree->getAllValues();
+                       vector<vector<string>> dummy =index_tree->getAllKeys();
                        for(int i=0;i<dummy.size();i++){
-                        if(dummy[i].first!=key){
+                        if(dummy[i]!=key){
                             vals_from_index.push_back(dummy[i]);
                         }
                        }
@@ -195,12 +195,10 @@ public:
                 }
                 else{ // that's what left !vals_from_index.empty() && we looked up the index
                     if(op==">="){
-                        auto it=lower_bound(vals_from_index.begin(),vals_from_index.end(),key,[](const auto& elem,const auto& val) {
-                         return elem.first < val;
-                        });
+                        auto it=lower_bound(vals_from_index.begin(),vals_from_index.end(),key);
                         if(it==vals_from_index.end()) return filtered_values;
                         else{
-                            vector<pair<vector<string>,streampos>> dummy;
+                            vector<vector<string>> dummy;
                             while(it!=vals_from_index.end()){
                                 dummy.push_back(*it);
                                 ++it;
@@ -209,13 +207,10 @@ public:
                         }
                     }
                     else if(op=="<="){
-                       auto it = std::upper_bound(vals_from_index.begin(), vals_from_index.end(),key, 
-                       [](const auto& val, const auto& elem) {
-                        return val < elem.first;
-                        });
+                       auto it = std::upper_bound(vals_from_index.begin(), vals_from_index.end(),key);
                         if(it == vals_from_index.begin()) return filtered_values;
                         it=std::prev(it);
-                        vector<pair<vector<string>,streampos>> dummy;
+                        vector<vector<string>> dummy;
                         while(it!=vals_from_index.begin()){
                             dummy.push_back(*it);
                             --it;
@@ -224,19 +219,17 @@ public:
                         vals_from_index=dummy;
                     }
                     else if(op=="=="){
-                        auto it=lower_bound(vals_from_index.begin(),vals_from_index.end(),key,[](const auto& elem,const auto& val) {
-                         return elem.first < val;
-                        });
+                        auto it=lower_bound(vals_from_index.begin(),vals_from_index.end(),key);
                         if(it==vals_from_index.end()) return filtered_values;
                         else{
-                            if((*it).first!=key) return filtered_values;
-                            return get_all_data({std::make_pair(key, (*it).second)});
+                            if((*it)!=key) return filtered_values;
+                            vals_from_index= {key};
                         }
                     }
                     else if(op=="!="){
-                       vector<pair<vector<string>,streampos>> dummy;
+                       vector<vector<string>> dummy;
                        for(int i=0;i<vals_from_index.size();i++){
-                        if(vals_from_index[i].first!=key){
+                        if(vals_from_index[i]!=key){
                             dummy.push_back(vals_from_index[i]);
                         }
                        }
@@ -259,7 +252,7 @@ public:
                 dummy=get_all_data(index_tree->getAllValues());
             }
             else {
-                dummy=get_all_data(vals_from_index);
+                dummy=get_all_data(index_tree->rangeQuery(vals_from_index.front(),vals_from_index.back()));
             }
             for(const auto& clause:commands){
                 for(int i=0;i<clause.size();i++){
